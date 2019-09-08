@@ -27,13 +27,125 @@ const diorama = new Diorama({
 });
 
 diorama.registerScenario("create a spot", async (s, t, { alice }) => {
-  // Make a call to a Zome function
-  // indicating the function, and passing it an input
-  const addr = await alice.call("spot", "create_spot", {
+  const { Ok: addr } = await alice.call("spot", "create_spot", {
     timestamp: Date.now()
   });
 
-  t.equals(addr, true);
+  t.equals(addr.startsWith("Qm"), true);
 });
+
+diorama.registerScenario(
+  "create a spot and questions",
+  async (s, t, { alice }) => {
+    const { Ok: addr } = await alice.call("spot", "create_spot", {
+      name: "impressing",
+      timestamp: Date.now()
+    });
+
+    t.equals(addr.startsWith("Qm"), true);
+
+    const { Ok: questionAddress } = await alice.call(
+      "spot",
+      "create_question",
+      {
+        question: {
+          question: "How are you?",
+          spot_address: addr,
+          question_type: {
+            Range: {
+              min: 0,
+              max: 10
+            }
+          }
+        }
+      }
+    );
+
+    t.equals(questionAddress.startsWith("Qm"), true);
+  }
+);
+
+diorama.registerScenario(
+  "create a spot, a range question and an answer",
+  async (s, t, { alice }) => {
+    const { Ok: addr } = await alice.call("spot", "create_spot", {
+      name: "impressing",
+      timestamp: Date.now()
+    });
+
+    t.equals(addr.startsWith("Qm"), true);
+
+    const { Ok: questionAddress } = await alice.call(
+      "spot",
+      "create_question",
+      {
+        question: {
+          question: "How are you?",
+          spot_address: addr,
+          question_type: {
+            Range: {
+              min: 0,
+              max: 10
+            }
+          }
+        }
+      }
+    );
+
+    t.equals(questionAddress.startsWith("Qm"), true);
+
+    const { Ok: responseAddress } = await alice.call(
+      "spot",
+      "create_response",
+      {
+        question_address: questionAddress,
+        response: "5"
+      }
+    );
+
+    t.equals(responseAddress.startsWith("Qm"), true);
+  }
+);
+
+diorama.registerScenario(
+  "create incorrect answers",
+  async (s, t, { alice }) => {
+    const { Ok: addr } = await alice.call("spot", "create_spot", {
+      name: "impressing",
+      timestamp: Date.now()
+    });
+
+    t.equals(addr.startsWith("Qm"), true);
+
+    const { Ok: questionAddress } = await alice.call(
+      "spot",
+      "create_question",
+      {
+        question: {
+          question: "How are you?",
+          spot_address: addr,
+          question_type: {
+            Range: {
+              min: 0,
+              max: 10
+            }
+          }
+        }
+      }
+    );
+
+    t.equals(questionAddress.startsWith("Qm"), true);
+
+    const result = await alice.call("spot", "create_response", {
+      question_address: questionAddress,
+      response: "100"
+    });
+
+    t.equals(
+      result.Err.Internal.includes("Response number is outside the range"),
+      true
+    );
+  }
+);
 
 diorama.run();
